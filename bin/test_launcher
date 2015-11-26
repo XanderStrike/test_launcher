@@ -1,39 +1,6 @@
 #!/usr/bin/env ruby
+require "test_launcher/command_parser"
+require "test_launcher"
 
-require "thor"
-require "test_launcher/searchers/git_searcher"
-require "test_launcher/tests/minitest/finder"
-require "test_launcher/tests/minitest/consolidator"
-require "test_launcher/shell/runner"
-
-class CLI < Thor
-
-  desc "find", <<-DESC
-    Find tests and run them. By trying to match an individual test or the name of a test file(s).
-  DESC
-  option :all, type: :boolean, desc: %{Run all tests found!}, default: false
-
-  def find(input)
-    if input == '--help'
-      `test_launcher --help find`
-      exit
-    end
-
-    shell = TestLauncher::Shell::Runner.new(
-      log_path: '/tmp/test_launcher.log',
-      working_directory: '.',
-
-    )
-
-    searcher = TestLauncher::Searchers::GitSearcher.new(shell)
-    search_results = TestLauncher::Tests::Minitest::Finder.find(input, searcher)
-
-    test_wrapper = TestLauncher::Tests::Minitest::Consolidator.consolidate(search_results, shell, options[:all])
-
-    shell.exec test_wrapper.to_command
-  end
-
-  default_task :find
-end
-
-CLI.start(ARGV)
+command_parser = CommandParser.new(ARGV)
+TestLauncher.find(command_parser.search_query, **command_parser.options)
